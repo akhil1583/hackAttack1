@@ -16,6 +16,15 @@
       font-weight: bold;
     }
 
+    .sub-header {
+      background-color: #34495e;
+      color: #ecf0f1;
+      padding: 10px;
+      text-align: center;
+      font-size: 1.1rem;
+      line-height: 1.5;
+    }
+
     .top, .bottom {
       display: flex;
       width: 100%;
@@ -99,6 +108,10 @@
 <body>
   <!-- ====== Header ====== -->
   <header>Fraud Detection</header>
+  <div class="sub-header">
+    Target feature name should be <b>is_fraud</b>.<br>
+    1 ➔ fraud &nbsp;&nbsp;|&nbsp;&nbsp; 0 ➔ not_fraud
+  </div>
 
   <!-- ====== Training Data Upload ====== -->
   <div class="top">
