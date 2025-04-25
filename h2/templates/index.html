@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fraud Detection</title>
+
+  <style>
+    /* ====== CSS Styling ====== */
+    header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    .top, .bottom {
+      display: flex;
+      width: 100%;
+    }
+
+    .top {
+      height: 40%;
+      justify-content: center;
+      align-items: center;
+      background: #f5f5f5;
+    }
+
+    .bottom {
+      height: 60%;
+    }
+
+    .left, .right {
+      width: 50%;
+      padding: 2rem;
+      box-sizing: border-box;
+    }
+
+    .upload-area {
+      border: 2px dashed #888;
+      padding: 30px;
+      text-align: center;
+      background: #fff;
+      cursor: pointer;
+      transition: 0.3s;
+      position: relative;
+    }
+
+    .upload-area:hover {
+      background: #eef;
+    }
+
+    .download-area {
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .file-info {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #333;
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ====== Header ====== -->
+  <header>Fraud Detection</header>
+
+  <!-- ====== Training Data Upload ====== -->
+  <div class="top">
+    <div class="upload-area" id="trainDropArea">
+      <h2>Upload Training Data</h2>
+      <p>Drag & drop or click to upload</p>
+      <input type="file" accept=".csv" id="trainInput" style="display:none">
+      <div class="file-info hidden" id="trainFileInfo"></div>
+      <button class="remove-btn hidden" id="trainRemoveBtn">×</button>
+    </div>
+  </div>
+
+  <!-- ====== Bottom Section: Testing Upload + Download Button ====== -->
+  <div class="bottom">
+    <div class="left">
+      <div class="upload-area" id="testDropArea">
+        <h2>Upload Testing Data</h2>
+        <p>Drag & drop or click to upload</p>
+        <input type="file" accept=".csv" id="testInput" style="display:none">
+        <div class="file-info hidden" id="testFileInfo"></div>
+        <button class="remove-btn hidden" id="testRemoveBtn">×</button>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="download-area">
+        <h2>Download Result</h2>
+        <button id="downloadBtn" class="disabled" disabled>Download Result CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== JavaScript Logic ====== -->
+  <script>
+    let trainFile = null;
+    let testFile = null;
+
+    const trainDrop = document.getElementById('trainDropArea');
+    const trainInput = document.getElementById('trainInput');
+    const trainFileInfo = document.getElementById('trainFileInfo');
+    const trainRemoveBtn = document.getElementById('trainRemoveBtn');
+
+    const testDrop = document.getElementById('testDropArea');
+    const testInput = document.getElementById('testInput');
+    const testFileInfo = document.getElementById('testFileInfo');
+    const testRemoveBtn = document.getElementById('testRemoveBtn');
+
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    function enableDownload(enabled) {
+      downloadBtn.disabled = !enabled;
+      downloadBtn.classList.toggle('disabled', !enabled);
+    }
+
+    async function uploadTrainCSV(file) {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/train", {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        trainFile = file;
+        showFileInfo(trainFileInfo, trainRemoveBtn, file.name);
+        if (testFile) enableDownload(true);
+        alert("Model trained successfully");
+      } else {
+        alert("Training failed: " + result.error);
+      }
+    }
+
+    async function uploadTestCSV(file) {
+      testFile = file;
+      showFileInfo(testFileInfo, testRemoveBtn, file.name);
+      if (trainFile) enableDownload(true);
+    }
+
+    async function downloadPredictedCSV() {
+      const formData = new FormData();
+      formData.append("file", testFile);
+      const response = await fetch("/predict_csv", {
+        method: "POST",
+        body: formData
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "fraud_predictions.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        const error = await response.json();
+        alert("Prediction failed: " + error.error);
+      }
+    }
+
+    function setupUpload(area, input, type) {
+      const isTrain = type === 'train';
+
+      area.addEventListener('click', () => input.click());
+
+      input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          isTrain ? uploadTrainCSV(file) : uploadTestCSV(file);
+        }
+      });
+
+      area.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        area.style.background = '#ddf';
+      });
+
+      area.addEventListener('dragleave', () => {
+        area.style.background = '#fff';
+      });
+
+      area.addEventListener('drop', (e) => {
+        e.preventDefault();
+        area.style.background = '#fff';
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          isTrain ? uploadTrainCSV(file) : uploadTestCSV(file);
+        }
+      });
+    }
+
+    function showFileInfo(infoDiv, removeBtn, fileName) {
+      infoDiv.classList.remove("hidden");
+      removeBtn.classList.remove("hidden");
+      infoDiv.innerText = `Uploaded: ${fileName}`;
+    }
+
+    trainRemoveBtn.addEventListener("click", () => {
+      trainFile = null;
+      trainFileInfo.classList.add("hidden");
+      trainRemoveBtn.classList.add("hidden");
+      enableDownload(false);
+    });
+
+    testRemoveBtn.addEventListener("click", () => {
+      testFile = null;
+      testFileInfo.classList.add("hidden");
+      testRemoveBtn.classList.add("hidden");
+      enableDownload(false);
+    });
+
+    downloadBtn.addEventListener("click", downloadPredictedCSV);
+
+    setupUpload(trainDrop, trainInput, 'train');
+    setupUpload(testDrop, testInput, 'test');
+  </script>
+</body>
+</html>
