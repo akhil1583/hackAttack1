@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fraud Detection</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background-color: #ffffff;
+      padding: 2rem 2.5rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      color: #333;
+    }
+
+    label {
+      margin-top: 1rem;
+      font-weight: bold;
+      color: #444;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    input:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1.5rem;
+      background-color: #007bff;
+      color: white;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #result {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-weight: bold;
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AI Transaction Fraud Detection</h1>
+
+    <label for="amount">Amount</label>
+    <input type="number" id="amount" step="0.01">
+
+    <label for="transaction_type">Transaction Type (e.g. 1 = Online, 0 = Offline)</label>
+    <input type="number" id="transaction_type">
+
+    <label for="account_age_days">Account Age (in Days)</label>
+    <input type="number" id="account_age_days">
+
+    <label for="location_score">Location Score (0 to 1)</label>
+    <input type="number" id="location_score" step="0.01" min="0" max="1">
+
+    <label for="device_trust_score">Device Trust Score (0 to 1)</label>
+    <input type="number" id="device_trust_score" step="0.01" min="0" max="1">
+
+    <button onclick="predict()">Check Transaction</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    async function predict() {
+      const data = {
+        amount: parseFloat(document.getElementById("amount").value),
+        transaction_type: parseInt(document.getElementById("transaction_type").value),
+        account_age_days: parseInt(document.getElementById("account_age_days").value),
+        location_score: parseFloat(document.getElementById("location_score").value),
+        device_trust_score: parseFloat(document.getElementById("device_trust_score").value)
+      };
+
+      try {
+        const res = await fetch("http://localhost:5000/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        document.getElementById("result").innerText = "Result: " + (result.prediction ?? result.error);
+      } catch (error) {
+        document.getElementById("result").innerText = "Error: Could not connect to the server.";
+      }
+    }
+  </script>
+</body>
+</html>
